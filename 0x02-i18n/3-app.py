@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 '''
 Basic flask app with babel setup
+Contains a basic flask app displaying 'Welcome to Holberton' on
+a single route '/'
 '''
 from flask import Flask, render_template, request
-from flask_babel import Babel, _
+from flask_babel import Babel
 
 
 class Config(object):
