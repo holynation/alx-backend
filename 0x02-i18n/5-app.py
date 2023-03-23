@@ -2,11 +2,14 @@
 """
 Flask app
 """
-
-
-from flask import Flask, g, render_template, request
+from flask import (
+    Flask,
+    render_template,
+    request,
+    g
+)
 from flask_babel import Babel
-from os import getenv
+
 
 users = {
     1: {"name": "Balou", "locale": "fr", "timezone": "Europe/Paris"},
@@ -16,54 +19,58 @@ users = {
 }
 
 
-app = Flask(__name__, static_url_path='')
+class Config(object):
+    """
+    Configuration for Babel
+    """
+    LANGUAGES = ["en", "fr"]
+    BABEL_DEFAULT_LOCALE = "en"
+    BABEL_DEFAULT_TIMEZONE = "UTC"
+
+
+app = Flask(__name__)
+app.config.from_object(Config)
 babel = Babel(app)
 
 
-class Config(object):
-    """configuration for babel"""
-    LANGUAGES = ['en', 'fr']
-    BABEL_DEFAULT_LOCALE = 'en'
-    BABEL_DEFAULT_TIMEZONE = 'UTC'
-
-
-app.config.from_object(Config)
-
-
-@app.route('/', methods=['GET'], strict_slashes=False)
-def index() -> str:
-    """this route renders 0-index.html template"""
-    return render_template('5-index.html')
-
-
-@babel.localeselector
-def get_locale() -> str:
-    """this method checks the URL parameter for locale variable
-    and force the Locale of the app"""
-    if request.args.get('locale'):
-        lang = request.args.get('locale')
-        if lang in app.config['LANGUAGES']:
-            return lang
-    else:
-        return request.accept_languages.best_match(app.config['LANGUAGES'])
-
-
 def get_user():
-    """this function returns a user dictionary or None if the ID
-    cannot be found or if login_as was not passed"""
-    userId = request.args.get('login_as', None)
-    if userId:
-        return users.get(int(userId))
+    """
+    Returns a user dictionary or None if ID value can't be found
+    or if 'login_as' URL parameter was not found
+    """
+    id = request.args.get('login_as', None)
+    if id is not None and int(id) in users.keys():
+        return users.get(int(id))
     return None
 
 
 @app.before_request
 def before_request():
-    """this function forces this method to be executed before any other"""
-    g.user = get_user()
+    """
+    Add user to flask.g if user is found
+    """
+    user = get_user()
+    g.user = user
+
+
+@babel.localeselector
+def get_locale():
+    """
+    Select and return best language match based on supported languages
+    """
+    loc = request.args.get('locale')
+    if loc in app.config['LANGUAGES']:
+        return loc
+    return request.accept_languages.best_match(app.config['LANGUAGES'])
+
+
+@app.route('/', strict_slashes=False)
+def index() -> str:
+    """
+    Handles / route
+    """
+    return render_template('5-index.html')
 
 
 if __name__ == "__main__":
-    host = getenv("API_HOST", "0.0.0.0")
-    port = getenv("API_PORT", "5000")
-    app.run(host=host, port=port)
+    app.run(port="5000", host="0.0.0.0", debug=True)
